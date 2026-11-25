@@ -425,6 +425,7 @@ ascender/ui/node_modules:
 $(UI_BUILD_FLAG_FILE):
 	$(MAKE) ascender/ui/node_modules
 	$(PYTHON) tools/scripts/compilemessages.py
+	$(NPM_BIN) --prefix ascender/ui --loglevel warn run extract-strings
 	$(NPM_BIN) --prefix ascender/ui --loglevel warn run compile-strings
 	$(NPM_BIN) --prefix ascender/ui --loglevel warn run build
 	touch $@
