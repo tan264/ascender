@@ -1,4 +1,5 @@
 import type {
+  EphemeralHost,
   LaunchConfig,
   LaunchCredential,
   SummaryFieldRef,
@@ -10,7 +11,7 @@ import type { LabelInput } from 'util/labels';
 
 // The launch configuration and the survey are api responses, so they are
 // declared with the rest of them; every step reaches them through here.
-export type { LaunchConfig, SurveyConfig, SurveyQuestion };
+export type { EphemeralHost, LaunchConfig, SurveyConfig, SurveyQuestion };
 
 /**
  * The values the launch prompt wizard collects, shared by the wizard itself and
@@ -27,6 +28,7 @@ export type { LaunchConfig, SurveyConfig, SurveyQuestion };
 export interface LaunchPromptValues {
   credential_passwords?: Record<string, string>;
   credentials?: LaunchCredential[];
+  ephemeral_hosts?: EphemeralHost[];
   execution_environment?: SummaryFieldRef | null;
   extra_vars?: string;
   forks?: number;

@@ -211,6 +211,7 @@ class JobTemplateSerializer(JobTemplateMixin, UnifiedJobTemplateSerializer, JobO
             'ask_job_slice_count_on_launch',
             'ask_timeout_on_launch',
             'ask_instance_groups_on_launch',
+            'ask_ephemeral_hosts_on_launch',
             'survey_enabled',
             'become_enabled',
             'diff_mode',
@@ -617,6 +618,31 @@ class JobEventSerializer(BaseSerializer):
         return data
 
 
+class EphemeralHostSerializer(serializers.Serializer):
+    host = serializers.CharField(max_length=255, allow_blank=False, trim_whitespace=True)
+    username = serializers.CharField(max_length=255, allow_blank=False, trim_whitespace=True)
+    password = serializers.CharField(max_length=1024, allow_blank=False, trim_whitespace=False, write_only=True)
+    port = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=65535)
+    become_password = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=1024, trim_whitespace=False, write_only=True)
+
+    def to_internal_value(self, data):
+        if isinstance(data, dict):
+            normalized = dict(data)
+            if 'username' not in normalized and 'user' in normalized:
+                normalized['username'] = normalized.pop('user')
+            if 'password' not in normalized and 'pass' in normalized:
+                normalized['password'] = normalized.pop('pass')
+            if normalized.get('port') == '':
+                normalized['port'] = None
+            data = normalized
+        return super().to_internal_value(data)
+
+    def validate_host(self, value):
+        if any(ch.isspace() for ch in value) or any(ord(ch) < 32 for ch in value):
+            raise serializers.ValidationError(_("Host must not contain whitespace or control characters."))
+        return value
+
+
 class JobLaunchSerializer(BaseSerializer):
     # Representational fields
     passwords_needed_to_start = serializers.ReadOnlyField()
@@ -646,6 +672,7 @@ class JobLaunchSerializer(BaseSerializer):
     job_slice_count = serializers.IntegerField(required=False, write_only=True, min_value=0)
     timeout = serializers.IntegerField(required=False, write_only=True)
     instance_groups = serializers.PrimaryKeyRelatedField(many=True, queryset=InstanceGroup.objects.all(), required=False, write_only=True)
+    ephemeral_hosts = EphemeralHostSerializer(many=True, required=False, write_only=True)
 
     class Meta:
         model = JobTemplate
@@ -679,6 +706,8 @@ class JobLaunchSerializer(BaseSerializer):
             'ask_job_slice_count_on_launch',
             'ask_timeout_on_launch',
             'ask_instance_groups_on_launch',
+            'ask_ephemeral_hosts_on_launch',
+            'ephemeral_hosts',
             'survey_enabled',
             'variables_needed_to_start',
             'credential_needed_to_start',
@@ -710,6 +739,7 @@ class JobLaunchSerializer(BaseSerializer):
             'ask_job_slice_count_on_launch',
             'ask_timeout_on_launch',
             'ask_instance_groups_on_launch',
+            'ask_ephemeral_hosts_on_launch',
         )
 
     def get_credential_needed_to_start(self, obj):
@@ -754,6 +784,21 @@ class JobLaunchSerializer(BaseSerializer):
 
     def validate_extra_vars(self, value):
         return vars_validate_or_raise(value)
+
+    def validate_ephemeral_hosts(self, value):
+        max_hosts = 500
+        if len(value) > max_hosts:
+            raise serializers.ValidationError(_("At most {} ephemeral hosts are allowed per job launch.").format(max_hosts))
+        seen_hosts = set()
+        duplicates = []
+        for entry in value:
+            host_key = entry['host'].lower()
+            if host_key in seen_hosts:
+                duplicates.append(entry['host'])
+            seen_hosts.add(host_key)
+        if duplicates:
+            raise serializers.ValidationError(_("Duplicate host entries are not allowed: {}.").format(', '.join(sorted(set(duplicates)))))
+        return value
 
     def validate(self, attrs):
         template = self.context.get('template')
@@ -817,6 +862,13 @@ class JobLaunchSerializer(BaseSerializer):
         if len(passwords_lacking):
             errors['passwords_needed_to_start'] = passwords_lacking
 
+        ephemeral_hosts = attrs.get('ephemeral_hosts')
+        if ephemeral_hosts:
+            if not template.ask_ephemeral_hosts_on_launch:
+                errors['ephemeral_hosts'] = _("This Job Template does not allow ephemeral hosts on launch.")
+        else:
+            ephemeral_hosts = None
+
         if errors:
             raise serializers.ValidationError(errors)
 
@@ -829,5 +881,7 @@ class JobLaunchSerializer(BaseSerializer):
         # Preserve extra_vars as dictionary internally
         if extra_vars_save:
             accepted['extra_vars'] = extra_vars_save
+        if ephemeral_hosts:
+            accepted['ephemeral_hosts'] = ephemeral_hosts
 
         return accepted

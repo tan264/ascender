@@ -556,6 +556,9 @@ class BaseTask(object):
             if not os.path.exists(settings.ASCENDER_ISOLATION_BASE_PATH):
                 raise RuntimeError('ASCENDER_ISOLATION_BASE_PATH=%s does not exist' % settings.ASCENDER_ISOLATION_BASE_PATH)
 
+            # Extract transient ephemeral hosts (with per-host credentials) before building passwords
+            self._ephemeral_hosts = kwargs.pop('ephemeral_hosts', None)
+
             # May have to serialize the value
             private_data_files, ssh_key_data = self.build_private_data_files(self.instance, private_data_dir)
             passwords = self.build_passwords(self.instance, kwargs)
@@ -924,6 +927,33 @@ class RunJob(SourceControlMixin, BaseTask):
 
     model = Job
     event_model = JobEvent
+
+    def build_inventory(self, instance, private_data_dir):
+        ephemeral_hosts = getattr(self, '_ephemeral_hosts', None)
+        if ephemeral_hosts:
+            self._ephemeral_hosts = None
+            hosts_list = []
+            hostvars = {}
+            for entry in ephemeral_hosts:
+                host_name = entry['host']
+                hosts_list.append(host_name)
+                hv = {
+                    'ansible_host': host_name,
+                    'ansible_user': entry['username'],
+                    'ansible_password': entry['password'],
+                }
+                if entry.get('port'):
+                    hv['ansible_port'] = int(entry['port'])
+                if entry.get('become_password'):
+                    hv['ansible_become_password'] = entry['become_password']
+                hostvars[host_name] = hv
+            script_data = {
+                'all': {'hosts': hosts_list},
+                '_meta': {'hostvars': hostvars},
+            }
+            file_content = '#! /usr/bin/env python3\n# -*- coding: utf-8 -*-\nprint(%r)\n' % json.dumps(script_data)
+            return self.write_private_data_file(private_data_dir, 'hosts', file_content, sub_dir='inventory', file_permissions=0o700)
+        return super(RunJob, self).build_inventory(instance, private_data_dir)
 
     def build_private_data(self, job, private_data_dir):
         """

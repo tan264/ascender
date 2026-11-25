@@ -137,12 +137,17 @@ class JobTemplateLaunch(RetrieveAPIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        ephemeral_hosts = serializer.validated_data.pop('ephemeral_hosts', None)
+
         if not request.user.can_access(models.JobLaunchConfig, 'add', serializer.validated_data, template=obj):
             raise PermissionDenied()
 
         passwords = serializer.validated_data.pop('credential_passwords', {})
         new_job = obj.create_unified_job(**serializer.validated_data)
-        result = new_job.signal_start(**passwords)
+        start_kwargs = dict(passwords)
+        if ephemeral_hosts:
+            start_kwargs['ephemeral_hosts'] = ephemeral_hosts
+        result = new_job.signal_start(**start_kwargs)
 
         if not result:
             data = dict(passwords_needed_to_start=new_job.passwords_needed_to_start)

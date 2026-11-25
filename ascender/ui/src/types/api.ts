@@ -674,9 +674,18 @@ export interface LaunchDefaults {
  * Every ask_*_on_launch flag turns one prompt on. `defaults` carries the values
  * the template already has, which seed the corresponding fields.
  */
+export interface EphemeralHost {
+  host: string;
+  username: string;
+  password: string;
+  port?: number | string | null;
+  become_password?: string;
+}
+
 export interface LaunchConfig {
   ask_credential_on_launch?: boolean;
   ask_diff_mode_on_launch?: boolean;
+  ask_ephemeral_hosts_on_launch?: boolean;
   ask_execution_environment_on_launch?: boolean;
   ask_forks_on_launch?: boolean;
   ask_instance_groups_on_launch?: boolean;

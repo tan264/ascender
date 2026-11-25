@@ -281,7 +281,7 @@ class JobTemplate(UnifiedJobTemplate, JobOptions, SurveyJobTemplateMixin, Resour
     playbook) to an inventory source with a given credential.
     """
 
-    FIELDS_TO_PRESERVE_AT_COPY = ['labels', 'instance_groups', 'credentials', 'survey_spec', 'prevent_instance_group_fallback', 'prevent_relaunch']
+    FIELDS_TO_PRESERVE_AT_COPY = ['labels', 'instance_groups', 'credentials', 'survey_spec', 'prevent_instance_group_fallback', 'prevent_relaunch', 'ask_ephemeral_hosts_on_launch']
     FIELDS_TO_DISCARD_AT_COPY = ['vault_credential', 'credential', 'webhook_key']
     SOFT_UNIQUE_TOGETHER = [('polymorphic_ctype', 'name', 'organization')]
 
@@ -333,6 +333,14 @@ class JobTemplate(UnifiedJobTemplate, JobOptions, SurveyJobTemplateMixin, Resour
     ask_instance_groups_on_launch = AskForField(
         blank=True,
         default=False,
+    )
+    ask_ephemeral_hosts_on_launch = models.BooleanField(
+        blank=True,
+        default=False,
+        help_text=_(
+            "If enabled, users can enter or import (CSV) a list of target hosts with per-host credentials "
+            "at launch time. Credentials are encrypted transiently in start_args and wiped once the job starts."
+        ),
     )
     job_slice_count = models.PositiveIntegerField(
         blank=True,
@@ -552,10 +560,13 @@ class JobTemplate(UnifiedJobTemplate, JobOptions, SurveyJobTemplateMixin, Resour
         # that of job template launch, so prompting_needed should
         # not block a provisioning callback from creating/launching jobs.
         if callback_extra_vars is None:
-            for ask_field_name in set(self.get_ask_mapping().values()):
-                if getattr(self, ask_field_name):
-                    prompting_needed = True
-                    break
+            if self.ask_ephemeral_hosts_on_launch:
+                prompting_needed = True
+            else:
+                for ask_field_name in set(self.get_ask_mapping().values()):
+                    if getattr(self, ask_field_name):
+                        prompting_needed = True
+                        break
         return not prompting_needed and not self.passwords_needed_to_start and not variables_needed
 
     def _accept_or_ignore_job_kwargs(self, **kwargs):

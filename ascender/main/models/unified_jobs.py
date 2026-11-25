@@ -1409,6 +1409,9 @@ class UnifiedJob(
             self.save(update_fields=['job_explanation'])
             return (False, None)
 
+        if isinstance(start_args, dict) and start_args.get('ephemeral_hosts'):
+            opts['ephemeral_hosts'] = start_args['ephemeral_hosts']
+
         if 'extra_vars' in kwargs:
             self.handle_extra_data(kwargs['extra_vars'])
 

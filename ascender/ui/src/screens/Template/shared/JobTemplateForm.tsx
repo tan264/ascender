@@ -713,6 +713,12 @@ function JobTemplateForm({
                     label={t`Prevent Relaunch`}
                     tooltip={helpText.preventRelaunch}
                   />
+                  <CheckboxField
+                    id="option-ask-ephemeral-hosts"
+                    name="ask_ephemeral_hosts_on_launch"
+                    label={t`Prompt for Bulk Hosts (Manual / CSV)`}
+                    tooltip={helpText.askEphemeralHostsOnLaunch}
+                  />
                 </FormCheckboxLayout>
               </FormGroup>
             </FormFullWidthLayout>
@@ -790,6 +796,9 @@ const FormikApp = withForm<JobTemplateFormProps, JobTemplateFormValues>({
       allow_simultaneous: template.allow_simultaneous || false,
       ask_credential_on_launch: template.ask_credential_on_launch || false,
       ask_diff_mode_on_launch: template.ask_diff_mode_on_launch || false,
+      ask_ephemeral_hosts_on_launch:
+        (template as { ask_ephemeral_hosts_on_launch?: boolean })
+          .ask_ephemeral_hosts_on_launch || false,
       ask_execution_environment_on_launch:
         template.ask_execution_environment_on_launch || false,
       ask_forks_on_launch: template.ask_forks_on_launch || false,

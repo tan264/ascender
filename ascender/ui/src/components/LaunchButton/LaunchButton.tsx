@@ -37,6 +37,7 @@ function canLaunchWithoutPrompt(launchData: LaunchConfig) {
     !launchData.ask_job_slice_count_on_launch &&
     !launchData.ask_timeout_on_launch &&
     !launchData.ask_instance_groups_on_launch &&
+    !launchData.ask_ephemeral_hosts_on_launch &&
     !launchData.survey_enabled &&
     (!launchData.passwords_needed_to_start ||
       launchData.passwords_needed_to_start.length === 0) &&

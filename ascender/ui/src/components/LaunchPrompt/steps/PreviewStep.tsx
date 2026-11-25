@@ -76,6 +76,27 @@ function PreviewStep({
         launchConfig={launchConfig}
         overrides={overrides}
       />
+      {launchConfig.ask_ephemeral_hosts_on_launch &&
+        Array.isArray(values.ephemeral_hosts) &&
+        values.ephemeral_hosts.length > 0 && (
+          <div
+            data-cy="preview-ephemeral-hosts"
+            style={{ marginTop: '16px' }}
+          >
+            <strong>
+              {t`Target Hosts (Ephemeral)`} ({values.ephemeral_hosts.length})
+            </strong>
+            <ul style={{ marginTop: '6px', paddingLeft: '20px' }}>
+              {values.ephemeral_hosts.map((h, idx) => (
+                <li key={idx}>
+                  <code>{h.host}</code> — {h.username}
+                  {h.port ? ` (port ${h.port})` : ''} — ••••••••
+                  {h.become_password ? ` (${t`become password set`})` : ''}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
     </div>
   );
 }

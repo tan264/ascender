@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useFormContext } from 'components/Form';
 import type { LabelInput } from 'util/labels';
 import useInventoryStep from './steps/useInventoryStep';
+import useEphemeralHostsStep from './steps/useEphemeralHostsStep';
 import useCredentialsStep from './steps/useCredentialsStep';
 import useCredentialPasswordsStep from './steps/useCredentialPasswordsStep';
 import useExecutionEnvironmentStep from './steps/useExecutionEnvironmentStep';
@@ -65,6 +66,7 @@ export default function useLaunchSteps(
     useFormContext<LaunchPromptValues>();
   const steps = [
     useInventoryStep(launchConfig, resource, visited),
+    useEphemeralHostsStep(launchConfig, visited),
     useCredentialsStep(
       launchConfig,
       resource,
@@ -181,6 +183,7 @@ export default function useLaunchSteps(
     ) => {
       setVisited({
         inventory: true,
+        ephemeralHosts: true,
         credentials: true,
         credentialPasswords: true,
         executionEnvironment: true,

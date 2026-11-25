@@ -16,6 +16,7 @@ import { FormRoot, useFormContext } from 'components/Form';
 import ContentLoading from '../ContentLoading';
 import ContentError from '../ContentError';
 import useLaunchSteps from './useLaunchSteps';
+import { serializeEphemeralHostsForLaunch } from './steps/ephemeralHostsUtils';
 import type { LaunchPromptValues, LaunchConfig, SurveyConfig } from './types';
 import AlertModal from '../AlertModal';
 
@@ -104,6 +105,17 @@ function PromptModalForm({
       );
 
       setValue('labels', labelIds);
+    }
+
+    if (
+      launchConfig.ask_ephemeral_hosts_on_launch &&
+      Array.isArray(values.ephemeral_hosts) &&
+      values.ephemeral_hosts.length > 0
+    ) {
+      setValue(
+        'ephemeral_hosts',
+        serializeEphemeralHostsForLaunch(values.ephemeral_hosts)
+      );
     }
 
     onSubmit(postValues);
